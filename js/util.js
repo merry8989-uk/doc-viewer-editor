@@ -84,7 +84,8 @@
     'xlsx':       'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
     'tesseract':  'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js',
     'epubjs':     'https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.93/epub.min.js',
-    'jspdf':      'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+    'jspdf':      'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'pptxgenjs':  'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'
   };
   var _loaded = {};
   function loadLib(name) {
@@ -106,7 +107,7 @@
   }
   function libGlobal(name) {
     return ({ pdfjs: 'pdfjsLib', pdflib: 'PDFLib', jszip: 'JSZip', xlsx: 'XLSX',
-              tesseract: 'Tesseract', epubjs: 'ePub', jspdf: 'jspdf' })[name] || name;
+              tesseract: 'Tesseract', epubjs: 'ePub', jspdf: 'jspdf', pptxgenjs: 'PptxGenJS' })[name] || name;
   }
 
   function toast(msg, kind) {

@@ -1,11 +1,12 @@
 /* DocForge service worker — offline-first app shell.
  * App files: cache-first. CDN libraries: cache after first successful load,
  * so the app keeps working offline once the libraries have been fetched. */
-const VERSION = 'docforge-v1';
+const VERSION = 'docforge-v2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './css/styles.css',
-  './js/util.js', './js/registry.js', './js/image.js',
+  './js/util.js', './js/registry.js', './js/image.js', './js/docx.js',
+  './js/pdfstudio.js', './js/present.js',
   './js/editors.js', './js/viewers.js', './js/tools.js', './js/app.js'
 ];
 

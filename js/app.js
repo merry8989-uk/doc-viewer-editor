@@ -55,11 +55,11 @@
         });
       }).catch(function () { current = DV.viewers.binary(stage, state); });
     }
-    if (['pptx', 'ppt', 'odp'].indexOf(ext) >= 0) {
+    if (kind === R.K.SLIDES) {
       return officeText(state).then(function (txt) {
-        state.text = txt || '(No extractable text.)';
-        current = DV.editors.text(stage, state);
-        setStatus('slides text');
+        state.text = txt || '';
+        current = DV.present.open(stage, state);
+        setStatus('slides');
       }).catch(function () { current = DV.viewers.binary(stage, state); });
     }
 
@@ -162,6 +162,9 @@
           doc.setFontSize(12); doc.text(' ', 40, 40);
           return { name: 'untitled.pdf', blob: doc.output('blob') };
         });
+      } },
+    { id: 'pptx', label: 'Blank presentation (.pptx)', make: function () {
+        return DV.present.blank().then(function (f) { return { name: f.name, blob: f }; });
       } }
   ];
 
@@ -197,6 +200,9 @@
     host.appendChild(cloud);
 
     var actions = U.el('div', { class: 'stack', style: { marginTop: '12px' } });
+    if (s.info.kind === R.K.PDF) actions.appendChild(U.el('button', { class: 'btn sm primary', text: 'Open PDF Studio', onclick: function () { DV.pdfstudio.open(s); } }));
+    if (s.info.kind === R.K.IMAGE) actions.appendChild(U.el('button', { class: 'btn sm', text: 'Annotate image', onclick: function () { DV.image.annotate(s); } }));
+    if (s.info.kind === R.K.SLIDES) actions.appendChild(U.el('button', { class: 'btn sm primary', text: 'Edit slides', onclick: function () { DV.app.route(s); } }));
     actions.appendChild(U.el('button', { class: 'btn sm', text: 'Save a copy (original)', onclick: function () {
       U.download(s.blob, s.name); U.toast('Saved copy', 'good');
     } }));
@@ -243,6 +249,7 @@
       var s = DV.state;
       if (tool === 'merge') return DV.tools.openMerge();
       if (tool === 'scan') return startScan();
+      if (tool === 'present') return createBlank('pptx');
       if (!s) { U.toast('Open a file first.', 'bad'); return; }
       if (tool === 'convert') DV.tools.openConvert(s);
       else if (tool === 'compress') DV.tools.openCompress(s);
@@ -250,6 +257,8 @@
       else if (tool === 'extract') DV.tools.openExtract(s);
       else if (tool === 'enhance') DV.tools.openEnhance(s);
       else if (tool === 'archive') DV.tools.zipOne(s);
+      else if (tool === 'pdfstudio') { if (s.info.kind === R.K.PDF) DV.pdfstudio.open(s); else U.toast('PDF Studio works on PDF files.', 'bad'); }
+      else if (tool === 'annotate') { if (s.info.kind === R.K.IMAGE) DV.image.annotate(s); else U.toast('Annotate works on images.', 'bad'); }
     });
   }
 

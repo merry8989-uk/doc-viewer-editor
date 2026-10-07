@@ -54,6 +54,16 @@
   function convert(state, target) {
     var srcKind = state.info.kind;
     var t = target.toLowerCase();
+    // -> real .docx
+    if (t === 'docx') {
+      var work;
+      if (srcKind === R.K.HTML) work = DV.docx.htmlToDocx(state.text || '');
+      else if (state.text != null) work = DV.docx.textToDocx(state.text);
+      else work = extractText(state, false).then(function (tx) { return DV.docx.textToDocx(tx || ''); });
+      return Promise.resolve(work).then(function (b) {
+        U.download(b, U.baseName(state.name) + '.docx'); U.toast('Converted to .docx', 'good');
+      }).catch(function (e) { U.toast(e.message, 'bad'); });
+    }
     // image -> image
     if (srcKind === R.K.IMAGE && ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'].indexOf(t) >= 0) {
       return blobToCanvas(state.blob).then(function (c) {

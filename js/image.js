@@ -295,5 +295,108 @@
     });
   }
 
-  DV.image = { mount: mount, scan: scan, setJpegDpi: setJpegDpi, loadImage: loadImage, render: mount };
+  /* ---------------- Annotation (pen / highlight / box / arrow / text) ---------------- */
+  function annotate(state) {
+    var back = U.el('div', { class: 'modal-back' });
+    var m = U.el('div', { class: 'modal', style: { width: 'min(920px,96vw)' } });
+    m.appendChild(U.el('h2', { text: 'Annotate image' }));
+    m.appendChild(U.el('div', { class: 'sub', text: 'Pen, highlight, box, arrow or text — then export.' }));
+    var wrap = U.el('div', { style: { display: 'grid', placeItems: 'center', background: '#0b0d12', borderRadius: '10px', padding: '10px' } });
+    var canvas = U.el('canvas', { style: { maxWidth: '100%', maxHeight: '58vh', cursor: 'crosshair', background: '#fff' } });
+    wrap.appendChild(canvas); m.appendChild(wrap);
+
+    var tool = 'pen', color = '#ff3b30', lw = 4;
+    var history = [], drawing = false, sx = 0, sy = 0, snap = null;
+
+    var toolsRow = U.el('div', { class: 'row', style: { marginTop: '10px' } });
+    ['pen', 'highlight', 'rect', 'arrow', 'text'].forEach(function (t) {
+      var b = U.el('button', { class: 'btn sm' + (t === 'pen' ? ' primary' : ''), text: t, onclick: function () {
+        tool = t;
+        Array.prototype.forEach.call(toolsRow.children, function (c) { if (c.tagName === 'BUTTON') c.classList.remove('primary'); });
+        b.classList.add('primary');
+      } });
+      toolsRow.appendChild(b);
+    });
+    var colorIn = U.el('input', { type: 'color', value: color });
+    colorIn.addEventListener('input', function () { color = colorIn.value; });
+    var sizeIn = U.el('input', { type: 'range', min: 1, max: 24, value: lw });
+    sizeIn.addEventListener('input', function () { lw = parseInt(sizeIn.value, 10); });
+    toolsRow.appendChild(U.el('span', { class: 'note', text: 'color' })); toolsRow.appendChild(colorIn);
+    toolsRow.appendChild(U.el('span', { class: 'note', text: 'size' })); toolsRow.appendChild(sizeIn);
+    m.appendChild(toolsRow);
+
+    var foot = U.el('div', { class: 'foot' });
+    foot.appendChild(U.el('button', { class: 'btn', text: 'Undo', onclick: undo }));
+    foot.appendChild(U.el('button', { class: 'btn', text: 'Close', onclick: function () { back.remove(); } }));
+    foot.appendChild(U.el('button', { class: 'btn primary', text: 'Export PNG', onclick: function () {
+      U.canvasToBlob(canvas, 'image/png').then(function (b) { U.download(b, U.baseName(state.name) + '_annotated.png'); U.toast('Saved annotated image', 'good'); });
+    } }));
+    foot.appendChild(U.el('button', { class: 'btn primary', text: 'Export JPG', onclick: function () {
+      U.canvasToBlob(canvas, 'image/jpeg', 0.92).then(function (b) { U.download(b, U.baseName(state.name) + '_annotated.jpg'); });
+    } }));
+    m.appendChild(foot);
+    back.appendChild(m);
+    back.addEventListener('click', function (e) { if (e.target === back) back.remove(); });
+    document.body.appendChild(back);
+
+    var ctx = canvas.getContext('2d');
+    U.readAsDataURL(state.blob).then(loadImage).then(function (img) {
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      ctx.drawImage(img, 0, 0);
+      history.push(canvas.toDataURL());
+    });
+
+    function pos(e) {
+      var r = canvas.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height };
+    }
+    function undo() {
+      if (history.length > 1) {
+        history.pop();
+        var im = new Image();
+        im.onload = function () { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(im, 0, 0); };
+        im.src = history[history.length - 1];
+      }
+    }
+    function commit() { history.push(canvas.toDataURL()); }
+
+    canvas.addEventListener('pointerdown', function (e) {
+      var p = pos(e); sx = p.x; sy = p.y;
+      ctx.lineJoin = ctx.lineCap = 'round';
+      if (tool === 'text') {
+        var txt = prompt('Text to add:');
+        if (txt) { ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.font = (lw * 6 + 12) + 'px sans-serif'; ctx.fillText(txt, sx, sy); commit(); }
+        return;
+      }
+      drawing = true;
+      snap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = tool === 'highlight' ? 0.35 : 1;
+      ctx.strokeStyle = tool === 'highlight' ? '#ffe066' : color;
+      ctx.lineWidth = tool === 'highlight' ? lw * 4 : lw;
+      ctx.beginPath(); ctx.moveTo(sx, sy);
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!drawing) return;
+      var p = pos(e);
+      if (tool === 'pen' || tool === 'highlight') { ctx.lineTo(p.x, p.y); ctx.stroke(); }
+      else {
+        ctx.putImageData(snap, 0, 0);
+        ctx.beginPath();
+        if (tool === 'rect') { ctx.rect(sx, sy, p.x - sx, p.y - sy); ctx.stroke(); }
+        else {
+          ctx.moveTo(sx, sy); ctx.lineTo(p.x, p.y); ctx.stroke();
+          var ang = Math.atan2(p.y - sy, p.x - sx), len = 12 + lw * 2;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - len * Math.cos(ang - Math.PI / 7), p.y - len * Math.sin(ang - Math.PI / 7));
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - len * Math.cos(ang + Math.PI / 7), p.y - len * Math.sin(ang + Math.PI / 7));
+          ctx.stroke();
+        }
+      }
+    });
+    canvas.addEventListener('pointerup', function () { if (drawing) { drawing = false; ctx.globalAlpha = 1; commit(); } });
+  }
+
+  DV.image = { mount: mount, scan: scan, annotate: annotate, setJpegDpi: setJpegDpi, loadImage: loadImage, render: mount };
 })(window.DV = window.DV || {});

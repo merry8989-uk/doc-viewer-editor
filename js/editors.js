@@ -58,6 +58,9 @@
 
     var view = head(state.info.label, true, [
       saveBtn('Save', function () { return area.value; }, state.ext, 'text/plain'),
+      U.el('button', { class: 'btn sm', text: 'Save as DOCX', onclick: function () {
+        DV.docx.textToDocx(area.value).then(function (b) { U.download(b, U.baseName(DV.state.name) + '.docx'); U.toast('Saved .docx', 'good'); });
+      } }),
       stats
     ]);
     stage.appendChild(view);
@@ -177,6 +180,9 @@
     var view = head(state.info.label + ' — live editor', true, [
       U.el('button', { class: 'btn sm', text: 'Run preview', onclick: preview }),
       saveBtn('Save HTML', function () { return area.value; }, 'html', 'text/html'),
+      U.el('button', { class: 'btn sm', text: 'Save as DOCX', onclick: function () {
+        DV.docx.htmlToDocx(area.value).then(function (b) { U.download(b, U.baseName(DV.state.name) + '.docx'); U.toast('Saved .docx', 'good'); });
+      } }),
       U.el('button', { class: 'btn sm', text: 'Save .txt', onclick: function () {
         U.download(new Blob([area.value], { type: 'text/plain' }), U.baseName(state.name) + '.txt');
       } }),
