@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DocForge — Offline Document Viewer & Editor</title>
+<meta name="description" content="Offline-first viewer and editor for documents, images, sheets, code, PDFs, ebooks, archives and more." />
+<meta name="theme-color" content="#0f1117" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <div class="brand">
+      <span class="logo">◆</span>
+      <div>DocForge <small>offline viewer &amp; editor</small></div>
+    </div>
+
+    <button class="btn primary" id="btnOpen">Open file…</button>
+    <input type="file" id="fileInput" multiple hidden />
+
+    <div class="dropdown" id="ddNew">
+      <button class="btn" data-toggle>New blank ▾</button>
+      <div class="menu" id="menuNew"></div>
+    </div>
+
+    <div class="dropdown" id="ddTools">
+      <button class="btn" data-toggle>Tools ▾</button>
+      <div class="menu" id="menuTools">
+        <div class="head">Process the open file</div>
+        <div class="item" data-tool="convert">Convert / change file type…</div>
+        <div class="item" data-tool="compress">Compress / reduce size…</div>
+        <div class="item" data-tool="resize">Resize · DPI · quality…</div>
+        <div class="item" data-tool="extract">Extract text (OCR)…</div>
+        <div class="item" data-tool="enhance">Enhance document…</div>
+        <div class="sep"></div>
+        <div class="head">Multiple files</div>
+        <div class="item" data-tool="merge">Merge / combine files…</div>
+        <div class="item" data-tool="archive">Create ZIP archive…</div>
+        <div class="sep"></div>
+        <div class="head">Camera</div>
+        <div class="item" data-tool="scan">Scan document with camera…</div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+    <span class="badge" id="statusBadge">ready</span>
+  </header>
+
+  <main>
+    <aside id="side">
+      <div class="panel" id="metaPanel">
+        <h3>File</h3>
+        <div class="note">Nothing open yet. Drop a file onto the canvas, or use <b>Open file…</b>.</div>
+      </div>
+      <div class="panel">
+        <h3>Supported formats</h3>
+        <div id="formatCloud" class="note">loading…</div>
+      </div>
+      <div class="panel">
+        <h3>About</h3>
+        <div class="note">Everything runs in your browser. Files never leave your device.
+        Save a copy with any tool to export a new format.</div>
+      </div>
+    </aside>
+
+    <section class="stage" id="stage">
+      <div id="drop">
+        <div>
+          <div class="big">⬇︎</div>
+          <h2>Drop files here</h2>
+          <p>View &amp; edit documents, images, spreadsheets, code, PDFs, ebooks and archives — fully offline.
+             You can also start from a blank document using <b>New blank</b>.</p>
+          <div class="row" style="justify-content:center;margin-top:14px">
+            <button class="btn primary" id="btnOpen2">Open file…</button>
+            <button class="btn" id="btnBlank2">New blank document</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toasts"></div>
+
+<!-- classic scripts (work from file:// with no build step) -->
+<script src="js/util.js"></script>
+<script src="js/registry.js"></script>
+<script src="js/image.js"></script>
+<script src="js/editors.js"></script>
+<script src="js/viewers.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
