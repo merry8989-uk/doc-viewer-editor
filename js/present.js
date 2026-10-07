@@ -122,46 +122,8 @@
       selected = ni; render();
     }
 
-    function exportPptx() {
-      U.loadLib('pptxgenjs').then(function (PptxGenJS) {
-        var pptx = new PptxGenJS();
-        pptx.layout = 'LAYOUT_16x9';
-        state.slides.forEach(function (s) {
-          var slide = pptx.addSlide();
-          if (s.title) slide.addText(s.title, { x: 0.5, y: 0.4, w: 9, h: 1, fontSize: 30, bold: true, color: '222222' });
-          if (s.bullets.length) {
-            slide.addText(s.bullets.map(function (b) { return { text: b, options: { bullet: true, fontSize: 18 } }; }),
-              { x: 0.7, y: 1.6, w: 8.6, h: 4.6, fontSize: 18, color: '333333', lineSpacingMultiple: 1.2 });
-          }
-          if (s.notes) slide.addNotes(s.notes);
-        });
-        return pptx.write({ outputType: 'blob' });
-      }).then(function (blob) {
-        U.download(blob, U.baseName(state.name) + '.pptx');
-        U.toast('Exported .pptx (' + state.slides.length + ' slides)', 'good');
-      }).catch(function (e) { U.toast('PPTX export unavailable: ' + e.message, 'bad'); });
-    }
-
-    function exportPdf() {
-      U.loadLib('jspdf').then(function (jspdf) {
-        var JsPDF = (jspdf.jsPDF) || jspdf;
-        var doc = new JsPDF({ orientation: 'landscape', unit: 'pt', format: [720, 405] });
-        state.slides.forEach(function (s, i) {
-          if (i > 0) doc.addPage([720, 405], 'landscape');
-          doc.setFontSize(24); doc.setTextColor(34);
-          doc.text((s.title || '').slice(0, 80), 40, 60);
-          doc.setFontSize(13); doc.setTextColor(60);
-          var y = 110;
-          s.bullets.forEach(function (b) {
-            var lines = doc.splitTextToSize('• ' + b, 640);
-            doc.text(lines, 50, y); y += lines.length * 18 + 4;
-            if (y > 370) { doc.addPage([720, 405], 'landscape'); y = 60; }
-          });
-        });
-        doc.save(U.baseName(state.name) + '.pdf');
-        U.toast('Exported .pdf', 'good');
-      }).catch(function (e) { U.toast('PDF export unavailable: ' + e.message, 'bad'); });
-    }
+    function exportPptx() { exportDeck(state.slides, U.baseName(state.name), 'pptx'); }
+    function exportPdf() { exportDeck(state.slides, U.baseName(state.name), 'pdf'); }
 
     render();
     return { getSlides: function () { return state.slides; } };
@@ -180,5 +142,41 @@
     });
   }
 
-  DV.present = { open: open, blank: blank, parseDeckText: parseDeckText };
+  // Export a deck (array of {title,bullets,notes}) as pptx or pdf. Reused by the export dialog.
+  function exportDeck(slides, baseName, fmt) {
+    if (fmt === 'pptx') {
+      return U.loadLib('pptxgenjs').then(function (PptxGenJS) {
+        var pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9';
+        slides.forEach(function (s) {
+          var slide = pptx.addSlide();
+          if (s.title) slide.addText(s.title, { x: 0.5, y: 0.4, w: 9, h: 1, fontSize: 30, bold: true, color: '222222' });
+          if (s.bullets && s.bullets.length) slide.addText(s.bullets.map(function (b) { return { text: b, options: { bullet: true, fontSize: 18 } }; }), { x: 0.7, y: 1.6, w: 8.6, h: 4.6, fontSize: 18, color: '333333', lineSpacingMultiple: 1.2 });
+          if (s.notes) slide.addNotes(s.notes);
+        });
+        return pptx.write({ outputType: 'blob' }).then(function (blob) { U.download(blob, baseName + '.pptx'); U.toast('Exported .pptx (' + slides.length + ' slides)', 'good'); });
+      }).catch(function (e) { U.toast('PPTX export unavailable: ' + e.message, 'bad'); });
+    }
+    if (fmt === 'pdf') {
+      return U.loadLib('jspdf').then(function (jspdf) {
+        var JsPDF = (jspdf.jsPDF) || jspdf;
+        var doc = new JsPDF({ orientation: 'landscape', unit: 'pt', format: [720, 405] });
+        slides.forEach(function (s, i) {
+          if (i > 0) doc.addPage([720, 405], 'landscape');
+          doc.setFontSize(24); doc.setTextColor(34); doc.text((s.title || '').slice(0, 80), 40, 60);
+          doc.setFontSize(13); doc.setTextColor(60);
+          var y = 110;
+          (s.bullets || []).forEach(function (b) {
+            var lines = doc.splitTextToSize('• ' + b, 640);
+            doc.text(lines, 50, y); y += lines.length * 18 + 4;
+            if (y > 370) { doc.addPage([720, 405], 'landscape'); y = 60; }
+          });
+        });
+        doc.save(baseName + '.pdf'); U.toast('Exported .pdf', 'good');
+      }).catch(function (e) { U.toast('PDF export unavailable: ' + e.message, 'bad'); });
+    }
+    U.toast('Unsupported deck format: ' + fmt, 'bad');
+  }
+
+  DV.present = { open: open, blank: blank, parseDeckText: parseDeckText, exportDeck: exportDeck };
 })(window.DV = window.DV || {});

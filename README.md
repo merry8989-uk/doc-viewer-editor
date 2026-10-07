@@ -61,18 +61,29 @@ Convert / change file type · compress (quality + scale) · resize · DPI · qua
 
 ---
 
-## Run it
+## Run it — locally, on your device
 
-**Simplest:** open `index.html` in a browser.
+Everything runs on your machine; no internet needed and nothing is uploaded. The libraries are bundled in `vendor/`, so it works fully offline.
 
-**As an installable offline app (recommended):**
+**1. Desktop app (Electron)** — a real app window on your device:
 
 ```bash
-python3 -m http.server 8080
-# open http://localhost:8080 and use "Install app"
+npm install
+npm start        # launches DocForge as a desktop app
+npm run dist     # optional: build a Windows / macOS / Linux installer (electron-builder)
 ```
 
-A local server is required for the service worker (browsers block SWs on `file://`).
+**2. Local launcher (no install — just Python 3):**
+
+```bash
+python3 start.py   # starts a local server and opens your browser
+```
+
+On Windows double-click **`start.bat`**; on macOS/Linux run **`./start.sh`**. A local server is needed for the offline service worker and the camera scanner.
+
+**3. Install as a PWA** — serve the folder and use the browser's **Install app** button; it then opens like a native app and keeps working offline.
+
+**4. Just open it** — double-click `index.html`. Most features work straight from the file; the service worker and camera need option 2 or 3.
 
 ---
 
@@ -84,6 +95,10 @@ doc-viewer-editor/
 ├── manifest.webmanifest    PWA manifest
 ├── sw.js                   offline service worker
 ├── css/styles.css          all styling
+├── vendor/                 bundled libraries (fully offline, no CDN needed)
+├── start.py / .sh / .bat   local launcher
+├── electron/main.js        desktop app wrapper
+├── package.json            desktop app + build config
 ├── js/
 │   ├── util.js             helpers, lazy CDN library loader
 │   ├── registry.js         the format catalog (359 extensions)
@@ -94,6 +109,7 @@ doc-viewer-editor/
 │   ├── editors.js          text / markdown / HTML / sheet editors
 │   ├── viewers.js          pdf, media, archive, ebook, hex viewers
 │   ├── tools.js            convert, compress, resize, extract, enhance, merge
+│   ├── exportui.js         "Export…" dialog with format choices
 │   └── app.js              controller: open, route, blank docs, wiring
 └── docs/FORMATS.md         full supported-format reference
 ```
@@ -103,8 +119,8 @@ doc-viewer-editor/
 
 ---
 
-## Libraries used (loaded on demand, cached offline)
-pdf.js · pdf-lib · JSZip · SheetJS (xlsx) · jsPDF · PptxGenJS · Tesseract.js · epub.js
+## Libraries used
+pdf.js · pdf-lib · JSZip · SheetJS (xlsx) · jsPDF · PptxGenJS · Tesseract.js · epub.js — all bundled under `vendor/` and loaded from disk, with a CDN fallback only if a local file is missing.
 
 ---
 

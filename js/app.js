@@ -200,6 +200,7 @@
     host.appendChild(cloud);
 
     var actions = U.el('div', { class: 'stack', style: { marginTop: '12px' } });
+    actions.appendChild(U.el('button', { class: 'btn sm primary', text: 'Export as…', onclick: function () { DV.exportUI.open(s); } }));
     if (s.info.kind === R.K.PDF) actions.appendChild(U.el('button', { class: 'btn sm primary', text: 'Open PDF Studio', onclick: function () { DV.pdfstudio.open(s); } }));
     if (s.info.kind === R.K.IMAGE) actions.appendChild(U.el('button', { class: 'btn sm', text: 'Annotate image', onclick: function () { DV.image.annotate(s); } }));
     if (s.info.kind === R.K.SLIDES) actions.appendChild(U.el('button', { class: 'btn sm primary', text: 'Edit slides', onclick: function () { DV.app.route(s); } }));
@@ -251,7 +252,8 @@
       if (tool === 'scan') return startScan();
       if (tool === 'present') return createBlank('pptx');
       if (!s) { U.toast('Open a file first.', 'bad'); return; }
-      if (tool === 'convert') DV.tools.openConvert(s);
+      if (tool === 'export') DV.exportUI.open(s);
+      else if (tool === 'convert') DV.tools.openConvert(s);
       else if (tool === 'compress') DV.tools.openCompress(s);
       else if (tool === 'resize') DV.tools.openResize(s);
       else if (tool === 'extract') DV.tools.openExtract(s);
@@ -299,6 +301,7 @@
     document.getElementById('btnOpen').addEventListener('click', function () { input.click(); });
     var o2 = document.getElementById('btnOpen2'); if (o2) o2.addEventListener('click', function () { input.click(); });
     var b2 = document.getElementById('btnBlank2'); if (b2) b2.addEventListener('click', function () { createBlank('txt'); });
+    var ex = document.getElementById('btnExport'); if (ex) ex.addEventListener('click', function () { if (DV.state) DV.exportUI.open(DV.state); else U.toast('Open a file first.', 'bad'); });
     input.addEventListener('change', function () { if (input.files.length) openFiles(input.files); input.value = ''; });
   }
 

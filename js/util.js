@@ -75,39 +75,45 @@
     return i > 0 ? s.slice(0, i) : s;
   }
 
-  // ---- lazy library loader (CDN, cached by the service worker) ----
-  var LIB_URLS = {
-    'pdfjs':      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-    'pdfjs.worker': 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-    'pdflib':     'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
-    'jszip':      'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-    'xlsx':       'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    'tesseract':  'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js',
-    'epubjs':     'https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.93/epub.min.js',
-    'jspdf':      'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'pptxgenjs':  'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'
+  // ---- lazy library loader: prefer the local vendor/ copy (fully offline),
+  //      fall back to a CDN if the local file is missing. ----
+  var LIBS = {
+    pdfjs:     { local: 'vendor/pdf.min.js',         cdn: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',            global: 'pdfjsLib', workerLocal: 'vendor/pdf.worker.min.js', workerCdn: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js' },
+    pdflib:    { local: 'vendor/pdf-lib.min.js',     cdn: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',        global: 'PDFLib' },
+    jszip:     { local: 'vendor/jszip.min.js',       cdn: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',            global: 'JSZip' },
+    xlsx:      { local: 'vendor/xlsx.full.min.js',   cdn: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',        global: 'XLSX' },
+    tesseract: { local: 'vendor/tesseract.min.js',   cdn: 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js',  global: 'Tesseract' },
+    epubjs:    { local: 'vendor/epub.min.js',        cdn: 'https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js',                 global: 'ePub' },
+    jspdf:     { local: 'vendor/jspdf.umd.min.js',   cdn: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',        global: 'jspdf' },
+    pptxgenjs: { local: 'vendor/pptxgen.bundle.js',  cdn: 'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',        global: 'PptxGenJS' }
   };
   var _loaded = {};
-  function loadLib(name) {
-    if (_loaded[name]) return Promise.resolve(window[libGlobal(name)]);
-    if (!LIB_URLS[name]) return Promise.reject(new Error('unknown lib ' + name));
+
+  function injectScript(src) {
     return new Promise(function (res, rej) {
       var s = document.createElement('script');
-      s.src = LIB_URLS[name];
-      s.onload = function () {
-        _loaded[name] = true;
-        if (name === 'pdfjs' && window.pdfjsLib) {
-          try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = LIB_URLS['pdfjs.worker']; } catch (e) {}
-        }
-        res(window[libGlobal(name)]);
-      };
-      s.onerror = function () { rej(new Error('Could not load library "' + name + '" (offline & not cached?)')); };
+      s.src = src;
+      s.onload = function () { res(); };
+      s.onerror = function () { rej(new Error('failed to load ' + src)); };
       document.head.appendChild(s);
     });
   }
-  function libGlobal(name) {
-    return ({ pdfjs: 'pdfjsLib', pdflib: 'PDFLib', jszip: 'JSZip', xlsx: 'XLSX',
-              tesseract: 'Tesseract', epubjs: 'ePub', jspdf: 'jspdf', pptxgenjs: 'PptxGenJS' })[name] || name;
+  function afterLoad(name, usedLocal) {
+    if (name === 'pdfjs' && window.pdfjsLib) {
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = usedLocal ? LIBS.pdfjs.workerLocal : LIBS.pdfjs.workerCdn; } catch (e) {}
+    }
+  }
+  function loadLib(name) {
+    var def = LIBS[name];
+    if (!def) return Promise.reject(new Error('unknown lib ' + name));
+    if (_loaded[name]) return Promise.resolve(window[def.global]);
+    return injectScript(def.local).then(function () {
+      _loaded[name] = true; afterLoad(name, true); return window[def.global];
+    }).catch(function () {
+      return injectScript(def.cdn).then(function () {
+        _loaded[name] = true; afterLoad(name, false); return window[def.global];
+      });
+    });
   }
 
   function toast(msg, kind) {
